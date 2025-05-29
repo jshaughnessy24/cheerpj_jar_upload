@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Upload and Run JAR with CheerpJ</title>
+</head>
+<body>
+  <h2>Upload and Run a JAR File</h2>
+  <input type="file" id="jarFileInput" accept=".jar" />
+  <button onclick="runUploadedJar()">Run</button>
+  <h3>Console log (system.out.print lines show up here, perhaps after CheerpJ messages)</h3>
+  <pre id="output" style="background:#f0f0f0;padding:1em; height: 200px; overflow:auto;"></pre>
+  <h3>CheerpJ display, if java app uses graphics. Otherwise loading screen displayed</h3>
+
+  <script src="https://cjrtnc.leaningtech.com/4.1/loader.js"></script>
+  <script>
+    async function runUploadedJar() {
+      const fileInput = document.getElementById('jarFileInput');
+      const outputEl = document.getElementById('output');
+      outputEl.textContent = '';  // clear output elm
+
+      // overide console.log to append messages to output box
+      console.log = function(message) {
+        const outputBox = document.getElementById('output');
+        if (outputBox) {
+          outputBox.textContent += message + '\n';
+        }
+      };
+
+      // get the file uploaded
+      const file = fileInput.files[0];
+      if (!file) {
+        alert("Select a .jar file.");
+        return;
+      }
+
+      // read binary data from the file
+      const arrayBuffer = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = e => reject(e);
+        reader.readAsArrayBuffer(file);
+      });
+      binary = new Uint8Array(arrayBuffer);
+      
+      // if not initialized, initialize CheerpJ
+      if (!window.cheerpjInitPromise) {
+        window.cheerpjInitPromise = cheerpjInit({version: 17, enableFilesystem: true});
+      }
+      await window.cheerpjInitPromise;
+
+      // add jar file to CheerpJ filesystem and run it
+      if (!window.cheerpjDisplayPromise) {
+        window.cheerpjDisplayPromise = cheerpjCreateDisplay(800, 600);   // display
+      }
+      await window.cheerpjDisplayPromise;
+      
+      cheerpOSAddStringFile("/str/program.jar", binary);
+      cheerpjRunJar('/str/program.jar');
+    }
+  </script>
+</body>
+</html>
